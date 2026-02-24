@@ -1,0 +1,19 @@
+# PDF files
+*.pdf
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Output files (user-generated, not tracked)
+revision-overview.md
+revision-plan.md
+response-letter.md
