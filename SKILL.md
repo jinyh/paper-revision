@@ -1,11 +1,39 @@
 ---
 name: paper-revision
+version: 2.0.0
 description: Systematically analyze peer review comments, develop revision strategies, and generate response letters for academic paper submissions. Use when handling reviewer feedback on submitted papers.
 ---
 
 # Paper Revision Assistant
 
-Help authors systematically process peer review feedback through a structured four-phase workflow: Parse → Strategy → Summary → Review.
+Help authors systematically process peer review feedback through a structured five-phase workflow:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Paper Revision Workflow                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌───────────┐    ┌───────────┐    ┌───────────┐    ┌───────────┐  │
+│  │  Phase 1   │    │  Phase 2   │    │  Phase 3   │    │  Phase 4   │
+│  │   Parse    │───▶│  Strategy  │───▶│  Summary   │───▶│  Verify    │
+│  │  解析意见   │    │  讨论策略   │    │  生成文档   │    │  自查验证   │
+│  └───────────┘    └───────────┘    └───────────┘    └───────────┘  │
+│       │                │                │                │          │
+│       ▼                ▼                ▼                ▼          │
+│  revision-        User decides     revision-plan.md   Completeness │
+│  overview.md      per comment      response-letter.md  + Scoring   │
+│                                                         │          │
+│                                                         ▼          │
+│                                                    ┌───────────┐   │
+│                                                    │  Phase 5   │   │
+│                                                    │  Review    │   │
+│                                                    │  用户审阅   │   │
+│                                                    └───────────┘   │
+│                                                         │          │
+│                                                         ▼          │
+│                                                       Done ✓       │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ## When to Use This Skill
 
@@ -53,6 +81,16 @@ Extract and structure ALL comments from every reviewer. For each comment:
 | **Major** | Requires new experiments, significant rewriting, methodological changes, or addresses fundamental flaws |
 | **Minor** | Clarification, additional discussion, minor analysis, reference additions |
 | **Editorial** | Typos, grammar, formatting, figure quality |
+
+**Action type tags** (assign one or more to each comment for structured tracking):
+
+| Action Type | Description |
+|-------------|-------------|
+| `clarification` | Rewrite existing text for clarity |
+| `experiment` | Run new experiments, add results/figures/tables |
+| `analysis` | Add ablations, statistical tests, or comparisons |
+| `structural` | Move, merge, or split sections |
+| `citation` | Add or correct references |
 
 **Priority escalation rules:**
 1. **Editor comments** → Always highest priority, process first
@@ -168,14 +206,23 @@ Organize by paper sections. Write using the `Write` tool:
 
 > 基于审稿意见讨论结果生成，用于追踪修改进度。
 
+## LaTeX 修改标记
+> 在修改论文时，使用以下 LaTeX 命令标记所有改动，方便审稿人快速定位：
+> ```latex
+> \usepackage{xcolor}
+> \newcommand{\revised}[1]{{\color{blue}#1}}
+> \newcommand{\added}[1]{{\color{blue}#1}}
+> \newcommand{\deleted}[1]{{\color{red}\sout{#1}}}
+> ```
+
 ## §1 Introduction
-- [ ] [R1-C2, R3-C1] 补充研究动机的论述（共同关切）
+- [ ] [R1-C2, R3-C1] 补充研究动机的论述（共同关切）`clarification`
   - 策略：在第二段增加...
-- [ ] [R2-C5] 修正文献引用格式
+- [ ] [R2-C5] 修正文献引用格式 `citation`
   - 策略：统一为...
 
 ## §2 Methods
-- [ ] [R1-C1] 补充实验细节（Major）
+- [ ] [R1-C1] 补充实验细节（Major）`experiment`
   - 策略：添加...
 
 ## §3 Results
@@ -240,9 +287,63 @@ We thank the reviewer for this insightful comment. [Response with specific chang
 After generating both files, tell the user:
 "修改计划和回复信已生成。请查看：\n- `revision-plan.md` — 按章节组织的中文修改清单\n- `response-letter.md` — 英文逐条回复信\n\n准备好后进入审阅阶段。"
 
-## Phase 4: Review — 用户审阅与修改
+## Phase 4: Verify — 自查验证
 
-### 4.1 User Review
+在用户审阅之前，先进行系统性自查，确保修改计划的完整性和一致性。
+
+### 4.1 完整性检查
+
+逐条核对所有审稿意见是否都已在 `revision-plan.md` 和 `response-letter.md` 中得到回应：
+
+生成检查清单并展示给用户：
+
+```markdown
+## 修改完整性检查
+
+| 意见编号 | 审稿人 | 类别 | revision-plan | response-letter | 状态 |
+|----------|--------|------|:---:|:---:|------|
+| R1-M1 | R1 | Major | ✅ | ✅ | 已覆盖 |
+| R1-M2 | R1 | Major | ✅ | ✅ | 已覆盖 |
+| ... | ... | ... | ... | ... | ... |
+```
+
+如有遗漏，立即补充。
+
+### 4.2 一致性检查
+
+确认两份文档之间的一致性：
+- `revision-plan.md` 中的每条策略是否与 `response-letter.md` 中的对应回复匹配
+- 回复信中引用的章节号、图表号是否与修改计划一致
+- 是否有矛盾的承诺（如一处说"已添加"，另一处说"将在未来工作中处理"）
+
+### 4.3 修改前后自评对比
+
+对论文的关键维度进行修改前后的自评打分（1-5 分），帮助用户量化改进效果：
+
+```markdown
+## 修改前后自评对比
+
+| 维度 | 修改前 | 修改后（预期） | 说明 |
+|------|:---:|:---:|------|
+| 方法论清晰度 | 3 | 4 | 补充实现细节和数学公式 |
+| 实验充分性 | 2 | 4 | 新增真实实验和基线对比 |
+| 数据可信度 | 2 | 4 | 扩大验证样本、补全开源资源 |
+| 写作质量 | 3 | 4 | 统一术语、修正拼写 |
+| 可复现性 | 1 | 4 | 补全代码和数据集 |
+```
+
+### 4.4 潜在风险提示
+
+检查修改是否可能引入新问题：
+- 新增内容是否可能超出页数限制
+- 新实验结果是否可能与已有结论矛盾
+- 修改是否影响论文的核心贡献声明
+
+将检查结果展示给用户，确认无误后进入审阅阶段。
+
+## Phase 5: Review — 用户审阅与修改
+
+### 5.1 User Review
 
 After presenting the documents, wait for user feedback. The user may:
 - Request changes to specific response letter entries
@@ -250,7 +351,7 @@ After presenting the documents, wait for user feedback. The user may:
 - Add missing comments that were not captured
 - Change the tone or wording of responses
 
-### 4.2 Handling Modifications
+### 5.2 Handling Modifications
 
 When user requests changes:
 1. Identify which document(s) need updating (`revision-plan.md` and/or `response-letter.md`)
@@ -258,7 +359,7 @@ When user requests changes:
 3. Keep both documents in sync (a strategy change in the plan should reflect in the response letter)
 4. Show the user the specific changes made
 
-### 4.3 Completion
+### 5.3 Completion
 
 When the user is satisfied:
 - Confirm all three output files are finalized
@@ -281,12 +382,45 @@ When the user is satisfied:
 
 ```
 /paper-revision triggered
-    ↓
-Phase 1: Scan PDFs → User confirms roles → Extract comments → Classify → Generate revision-overview.md
-    ↓
-Phase 2: Read paper → Discuss each comment with user (priority order) → Record decisions
-    ↓
-Phase 3: Generate revision-plan.md (Chinese) + response-letter.md (English)
-    ↓
-Phase 4: User reviews → Edit as needed → Done
+        │
+        ▼
+┌─── Phase 1: Parse ────────────────────────────────┐
+│  Scan PDFs → User confirms roles → Extract &       │
+│  classify comments → Generate revision-overview.md  │
+└───────────────────────┬────────────────────────────┘
+                        ▼
+┌─── Phase 2: Strategy ─────────────────────────────┐
+│  Read paper → Discuss each comment with user       │
+│  (priority order) → Record decisions               │
+└───────────────────────┬────────────────────────────┘
+                        ▼
+┌─── Phase 3: Summary ──────────────────────────────┐
+│  Generate revision-plan.md (Chinese)               │
+│  Generate response-letter.md (English)             │
+└───────────────────────┬────────────────────────────┘
+                        ▼
+┌─── Phase 4: Verify ───────────────────────────────┐
+│  Completeness check → Consistency check →          │
+│  Before/after scoring → Risk alerts                │
+└───────────────────────┬────────────────────────────┘
+                        ▼
+┌─── Phase 5: Review ───────────────────────────────┐
+│  User reviews → Edit as needed → Done              │
+└───────────────────────────────────────────────────┘
 ```
+
+## Key Rules
+
+- Address every reviewer concern without exception — no comment should be left unresponded
+- Preserve paper structure unless explicitly needed otherwise
+- Base new results on actual experiments, not fabricated data
+- Clearly mark all revised text in LaTeX for reviewer visibility (use `\revised{}` / `\added{}` / `\deleted{}`)
+- Language policy: `revision-overview.md` and `revision-plan.md` in Chinese; `response-letter.md` in English
+- Compare scores before and after revision to quantify improvement
+
+## Related Skills
+
+This skill works well in combination with:
+- **self-review**: Run before submission to catch issues early
+- **rebuttal-writing**: For conference-style rebuttals (shorter format than journal response letters)
+- **paper-compilation**: For LaTeX compilation and formatting checks after revisions
